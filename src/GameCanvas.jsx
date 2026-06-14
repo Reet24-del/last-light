@@ -614,10 +614,10 @@ export default function GameCanvas({
         // Player Movement
         const speed = 3.5;
         let dx = 0, dy = 0;
-        if (keysRef.current['w'] || keysRef.current['W'] || keysRef.current['ArrowUp']) dy -= 1;
-        if (keysRef.current['s'] || keysRef.current['S'] || keysRef.current['ArrowDown']) dy += 1;
-        if (keysRef.current['a'] || keysRef.current['A'] || keysRef.current['ArrowLeft']) dx -= 1;
-        if (keysRef.current['d'] || keysRef.current['D'] || keysRef.current['ArrowRight']) dx += 1;
+        if (keysRef.current['w'] || keysRef.current['arrowup']) dy -= 1;
+        if (keysRef.current['s'] || keysRef.current['arrowdown']) dy += 1;
+        if (keysRef.current['a'] || keysRef.current['arrowleft']) dx -= 1;
+        if (keysRef.current['d'] || keysRef.current['arrowright']) dx += 1;
         
         if (dx !== 0 || dy !== 0) {
           const len = Math.sqrt(dx*dx + dy*dy);
@@ -1301,8 +1301,8 @@ export default function GameCanvas({
 
     animationFrameId = requestAnimationFrame(render);
 
-    const handleKeyDown = (e) => { keysRef.current[e.key] = true; };
-    const handleKeyUp = (e) => { keysRef.current[e.key] = false; };
+    const handleKeyDown = (e) => { keysRef.current[e.key.toLowerCase()] = true; };
+    const handleKeyUp = (e) => { keysRef.current[e.key.toLowerCase()] = false; };
     const handleMouseMove = (e) => {
       const rect = canvas.getBoundingClientRect();
       mouseRef.current.x = e.clientX - rect.left;
