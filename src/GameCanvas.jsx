@@ -619,6 +619,15 @@ export default function GameCanvas({
         if (keysRef.current['a'] || keysRef.current['arrowleft']) dx -= 1;
         if (keysRef.current['d'] || keysRef.current['arrowright']) dx += 1;
         
+        // Touch Joystick Movement
+        if (keysRef.current.touchMoveAnchor && keysRef.current.touchMoveCurrent) {
+           const tx = keysRef.current.touchMoveCurrent.x - keysRef.current.touchMoveAnchor.x;
+           const ty = keysRef.current.touchMoveCurrent.y - keysRef.current.touchMoveAnchor.y;
+           if (Math.sqrt(tx*tx + ty*ty) > 5) {
+              dx += tx; dy += ty;
+           }
+        }
+        
         if (dx !== 0 || dy !== 0) {
           const len = Math.sqrt(dx*dx + dy*dy);
           dx /= len; dy /= len;
@@ -1287,6 +1296,22 @@ export default function GameCanvas({
         ctx.fillRect(0, 0, GAME_CONSTANTS.CANVAS_WIDTH, GAME_CONSTANTS.CANVAS_HEIGHT);
       }
 
+      // Draw virtual joystick if active
+      if (keysRef.current.touchMoveAnchor && keysRef.current.touchMoveCurrent) {
+         ctx.beginPath();
+         ctx.arc(keysRef.current.touchMoveAnchor.x, keysRef.current.touchMoveAnchor.y, 45, 0, Math.PI*2);
+         ctx.fillStyle = 'rgba(100, 180, 255, 0.1)';
+         ctx.fill();
+         ctx.strokeStyle = 'rgba(100, 180, 255, 0.4)';
+         ctx.lineWidth = 2;
+         ctx.stroke();
+         
+         ctx.beginPath();
+         ctx.arc(keysRef.current.touchMoveCurrent.x, keysRef.current.touchMoveCurrent.y, 25, 0, Math.PI*2);
+         ctx.fillStyle = 'rgba(100, 180, 255, 0.6)';
+         ctx.fill();
+      }
+
       ctx.restore();
 
       // Update HUD
@@ -1305,17 +1330,78 @@ export default function GameCanvas({
     const handleKeyUp = (e) => { keysRef.current[e.key.toLowerCase()] = false; };
     const handleMouseMove = (e) => {
       const rect = canvas.getBoundingClientRect();
-      mouseRef.current.x = e.clientX - rect.left;
-      mouseRef.current.y = e.clientY - rect.top;
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      mouseRef.current.x = (e.clientX - rect.left) * scaleX;
+      mouseRef.current.y = (e.clientY - rect.top) * scaleY;
     };
     const handleMouseDown = () => { mouseRef.current.isDown = true; };
     const handleMouseUp = () => { mouseRef.current.isDown = false; };
+
+    const handleTouchStart = (e) => {
+      e.preventDefault();
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+
+      for (let i = 0; i < e.touches.length; i++) {
+        const touch = e.touches[i];
+        const tx = (touch.clientX - rect.left) * scaleX;
+        const ty = (touch.clientY - rect.top) * scaleY;
+        
+        if (tx < GAME_CONSTANTS.CANVAS_WIDTH / 2) {
+          keysRef.current.touchMoveAnchor = { x: tx, y: ty, id: touch.identifier };
+          keysRef.current.touchMoveCurrent = { x: tx, y: ty };
+        } else {
+          mouseRef.current.x = tx;
+          mouseRef.current.y = ty;
+          mouseRef.current.isDown = true;
+          keysRef.current.touchAimId = touch.identifier;
+        }
+      }
+    };
+    
+    const handleTouchMove = (e) => {
+      e.preventDefault();
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+
+      for (let i = 0; i < e.touches.length; i++) {
+        const touch = e.touches[i];
+        const tx = (touch.clientX - rect.left) * scaleX;
+        const ty = (touch.clientY - rect.top) * scaleY;
+
+        if (keysRef.current.touchMoveAnchor && touch.identifier === keysRef.current.touchMoveAnchor.id) {
+          keysRef.current.touchMoveCurrent = { x: tx, y: ty };
+        } else if (touch.identifier === keysRef.current.touchAimId) {
+          mouseRef.current.x = tx;
+          mouseRef.current.y = ty;
+        }
+      }
+    };
+
+    const handleTouchEnd = (e) => {
+      e.preventDefault();
+      let stillMoving = false;
+      let stillAiming = false;
+      for (let i = 0; i < e.touches.length; i++) {
+         if (keysRef.current.touchMoveAnchor && e.touches[i].identifier === keysRef.current.touchMoveAnchor.id) stillMoving = true;
+         if (e.touches[i].identifier === keysRef.current.touchAimId) stillAiming = true;
+      }
+      if (!stillMoving) keysRef.current.touchMoveAnchor = null;
+      if (!stillAiming) mouseRef.current.isDown = false;
+    };
 
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
     canvas.addEventListener('mousemove', handleMouseMove);
     canvas.addEventListener('mousedown', handleMouseDown);
     window.addEventListener('mouseup', handleMouseUp);
+    canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+    canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+    canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
+    canvas.addEventListener('touchcancel', handleTouchEnd, { passive: false });
 
     return () => {
       cancelAnimationFrame(animationFrameId);
@@ -1324,6 +1410,10 @@ export default function GameCanvas({
       canvas.removeEventListener('mousemove', handleMouseMove);
       canvas.removeEventListener('mousedown', handleMouseDown);
       window.removeEventListener('mouseup', handleMouseUp);
+      canvas.removeEventListener('touchstart', handleTouchStart);
+      canvas.removeEventListener('touchmove', handleTouchMove);
+      canvas.removeEventListener('touchend', handleTouchEnd);
+      canvas.removeEventListener('touchcancel', handleTouchEnd);
     };
   }, [waveIndex, onWaveComplete, onGameOver, onVictory, setHudState, isTuringActive]);
 
