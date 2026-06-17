@@ -202,13 +202,20 @@ export default function App() {
             <p>The demons rise as the sun falls. Only your spirit blade holds them back.</p>
           </div>
           
-          <div className="controls-grid">
+          <div className="controls-grid desktop-controls">
             <span className="control-key">WASD / ARROWS</span>
             <span className="control-action">Move</span>
             <span className="control-key">MOUSE</span>
-            <span className="control-action">Aim Katana</span>
+            <span className="control-action">Aim</span>
             <span className="control-key">L-CLICK / SPACE</span>
-            <span className="control-action">Spirit Slash</span>
+            <span className="control-action">Shoot</span>
+          </div>
+
+          <div className="controls-grid mobile-controls">
+            <span className="control-key">DRAG LEFT SIDE</span>
+            <span className="control-action">Move</span>
+            <span className="control-key">DRAG RIGHT SIDE</span>
+            <span className="control-action">Aim & Slash</span>
           </div>
 
           <div className="mechanics-info">
