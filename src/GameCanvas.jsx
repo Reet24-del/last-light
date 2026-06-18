@@ -1030,6 +1030,11 @@ export default function GameCanvas({
             state.score = Math.max(0, state.score + REWARD_PENALTIES.DAMAGE_TAKEN);
             rewardPopups.push({ x: player.x, y: player.y - 15, value: REWARD_PENALTIES.DAMAGE_TAKEN, life: 1.2, size: 16 });
             
+            // Knockback the enemy so it doesn't get stuck to the player
+            const kbAngle = Math.atan2(e.y - player.y, e.x - player.x);
+            e.x += Math.cos(kbAngle) * 60;
+            e.y += Math.sin(kbAngle) * 60;
+            
             if (player.hp <= 0) {
               onGameOver(state.score, waveData.hour);
               return;
